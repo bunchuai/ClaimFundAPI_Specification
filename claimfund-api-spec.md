@@ -6,6 +6,26 @@
 
 ---
 
+## สารบัญ
+
+| # | หัวข้อ | Controller / เนื้อหา |
+|---|---|---|
+| 1 | [Authentication](#1-authentication) | OAuth2 flow, header ที่ต้องส่ง |
+| 2 | [Response Envelope](#2-response-envelope-สำคัญมาก) | รูปแบบ `ServiceResponse<T>` กลางของทุก endpoint |
+| 3 | สรุป Endpoint ทั้งหมด (21 รายการ) | |
+| 3.1 | [HospitalPaymentSetting](#31-hospitalpaymentsetting--ตั้งค่าการจ่ายเงินรายสถานพยาบาล) | ตั้งค่าการจ่ายเงินรายสถานพยาบาล (5 endpoints) |
+| 3.2 | [Masters](#32-masters--ข้อมูล-dropdown--lookup) | ข้อมูล dropdown / lookup (6 endpoints) |
+| 3.3 | [Transfer](#33-transfer--สร้างรายการโอนเงิน) | สร้างรายการโอนเงิน (3 endpoints) |
+| 3.4 | [Setting](#34-setting--ตั้งค่าโอนเงินอัตโนมัติระดับระบบ) | ตั้งค่าโอนเงินอัตโนมัติระดับระบบ (3 endpoints) |
+| 3.5 | [Notification](#35-notification--sms--แบบประเมินความพึงพอใจ) | SMS & แบบประเมินความพึงพอใจ (4 endpoints) |
+| 3.6 | [VersionControl](#36-versioncontrol) | เวอร์ชันแอปพลิเคชัน (1 endpoint) |
+| 4 | [Endpoint ที่ frontend ไม่ควรเรียก](#4-endpoint-ที่-frontend-ไม่ควรเรียก) | `CreateTransferResult` (callback จากธนาคาร) |
+| 5 | [Convention & ข้อควรระวัง](#5-convention--ข้อควรระวัง) | การตั้งชื่อที่สะกดผิด, วันที่/เวลา, จำนวนเงิน, paging |
+| 6 | [ตัวอย่างโค้ด React](#6-ตัวอย่างโค้ด-react) | axios + React Query, ตัวอย่างครบทุก flow |
+| 7 | [คำถามที่ต้องเคลียร์กับ Backend](#7-คำถามที่ต้องเคลียร์กับ-backend) | จุดที่ spec ยังไม่ชัดเจน 7 ข้อ |
+
+---
+
 ## 1. Authentication
 
 OAuth2 — Authorization Code flow
