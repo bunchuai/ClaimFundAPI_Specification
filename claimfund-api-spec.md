@@ -367,7 +367,413 @@ interface GetSMSTransactionResponse {
 
 ---
 
-## 6. คำถามที่ต้องเคลียร์กับ Backend
+## 6. ตัวอย่างโค้ด React
+
+Stack: **axios + @tanstack/react-query**. โครงสร้างไฟล์แนะนำ:
+
+```
+src/
+  api/
+    http.ts            # axios instance + interceptor
+    types.ts           # ServiceResponse<T> + DTOs
+    hospitalSetting.ts
+    masters.ts
+    transfer.ts
+    setting.ts
+    notification.ts
+  hooks/
+    useHospitalSetting.ts
+    useMasters.ts
+    useTransfer.ts
+    ...
+```
+
+### 6.1 `api/http.ts` — axios instance + auth interceptor
+
+```ts
+import axios, { AxiosError } from "axios";
+
+export const http = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL, // เช่น https://s9ps9j5t-5001.asse.devtunnels.ms
+  headers: { "Content-Type": "application/json" },
+});
+
+// แนบ token ทุก request
+http.interceptors.request.use((config) => {
+  const token = getAccessToken(); // ดึงจาก store/oidc-client ของคุณ
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// ดัก 401 → refresh แล้ว retry 1 ครั้ง
+http.interceptors.response.use(
+  (res) => res,
+  async (error: AxiosError) => {
+    const original = error.config as any;
+    if (error.response?.status === 401 && !original._retry) {
+      original._retry = true;
+      const newToken = await refreshAccessToken(); // implement ตาม oidc flow
+      if (newToken) {
+        original.headers.Authorization = `Bearer ${newToken}`;
+        return http(original);
+      }
+    }
+    if (error.response?.status === 403) {
+      // redirect ไปหน้า no-permission ตามที่ระบบกำหนด
+    }
+    return Promise.reject(error);
+  }
+);
+```
+
+### 6.2 `api/types.ts` — envelope + helper กลาง
+
+```ts
+export interface ServiceResponse<T> {
+  data: T | null;
+  isSuccess: boolean;
+  message: string | null;
+  code: number | null;
+  exceptionMessage: unknown | null;
+  serverDateTime: string;
+  totalAmountRecords: number | null;
+  totalAmountPages: number | null;
+  currentPage: number | null;
+  recordsPerPage: number | null;
+  pageIndex: number | null;
+}
+
+export class ApiError extends Error {
+  code: number | null;
+  constructor(message: string | null, code: number | null) {
+    super(message ?? "Unknown API error");
+    this.code = code;
+  }
+}
+
+// unwrap envelope กลาง ใช้ทุกที่ที่เรียก API
+export function unwrap<T>(res: { data: ServiceResponse<T> }): T {
+  const body = res.data;
+  if (!body.isSuccess) throw new ApiError(body.message, body.code);
+  if (body.data === null) throw new ApiError("No data returned", body.code);
+  return body.data;
+}
+```
+
+### 6.3 `api/masters.ts` — ตัวอย่าง GET แบบ list + object
+
+```ts
+import { http } from "./http";
+import { ServiceResponse, unwrap } from "./types";
+
+export interface MasterItem {
+  id: number;
+  name: string | null;
+}
+
+export const mastersApi = {
+  getAdjustmentReasons: () =>
+    http
+      .get<ServiceResponse<MasterItem[]>>("/api/Masters/GetAdjustmentReasons")
+      .then(unwrap),
+
+  getTransferStatuses: () =>
+    http
+      .get<ServiceResponse<MasterItem[]>>("/api/Masters/GetTransferStatuses")
+      .then(unwrap),
+
+  getPaymentStatuses: () =>
+    http
+      .get<ServiceResponse<MasterItem[]>>("/api/Masters/GetPaymentStatuses")
+      .then(unwrap),
+
+  getBankAccountRelationTypes: () =>
+    http
+      .get<ServiceResponse<MasterItem[]>>(
+        "/api/Masters/GetBankAccountRelationTypes"
+      )
+      .then(unwrap),
+};
+```
+
+### 6.4 `hooks/useMasters.ts` — React Query, cache แบบ static data
+
+```ts
+import { useQuery } from "@tanstack/react-query";
+import { mastersApi } from "../api/masters";
+
+export function useAdjustmentReasons() {
+  return useQuery({
+    queryKey: ["masters", "adjustmentReasons"],
+    queryFn: mastersApi.getAdjustmentReasons,
+    staleTime: Infinity, // master data ไม่เปลี่ยนบ่อย ไม่ต้องยิงซ้ำ
+    gcTime: Infinity,
+  });
+}
+
+export function useTransferStatuses() {
+  return useQuery({
+    queryKey: ["masters", "transferStatuses"],
+    queryFn: mastersApi.getTransferStatuses,
+    staleTime: Infinity,
+  });
+}
+```
+
+### 6.5 `api/hospitalSetting.ts` + hook — search แบบมี debounce
+
+```ts
+// api/hospitalSetting.ts
+import { http } from "./http";
+import { ServiceResponse, unwrap } from "./types";
+
+export interface SearchHospitalResponseDto {
+  orgId: number;
+  orgName: string | null;
+}
+
+export interface HospitalSettingMonitorReponseDto {
+  hospitalPaymentSettingId: string;
+  hospitalName: string | null;
+  isAutoPay: boolean | null;
+  delayDays: number;
+  holdStatusId: number | null;
+  holdStatusName: string | null;
+  updatedDate: string | null;
+}
+
+export interface AddHospitalSettingRequestDto {
+  hospitalId: number;
+  hospitalName: string;
+  autoPayDelayDays: number;
+  holdStatusId: number;
+  isAutoPay: boolean;
+}
+
+export const hospitalSettingApi = {
+  search: (orgName: string) =>
+    http
+      .get<ServiceResponse<SearchHospitalResponseDto[]>>(
+        "/api/HospitalPaymentSetting/Finance/SearchHospital",
+        { params: { orgName } }
+      )
+      .then(unwrap),
+
+  monitor: (searchDetail?: string) =>
+    http
+      .get<ServiceResponse<HospitalSettingMonitorReponseDto[]>>(
+        "/api/HospitalPaymentSetting/Finance/HospitalSettingMonitor",
+        { params: { searchDetail } }
+      )
+      .then(unwrap),
+
+  add: (payload: AddHospitalSettingRequestDto) =>
+    http
+      .post<ServiceResponse<{ isSuccess: boolean; message: string | null }>>(
+        "/api/HospitalPaymentSetting/Finance/AddHospitalSetting",
+        payload
+      )
+      .then(unwrap),
+};
+```
+
+```tsx
+// hooks/useHospitalSearch.ts — autocomplete พร้อม debounce
+import { useQuery } from "@tanstack/react-query";
+import { useMemo, useState } from "react";
+import { hospitalSettingApi } from "../api/hospitalSetting";
+
+function useDebounce<T>(value: T, delay = 300): T {
+  const [debounced, setDebounced] = useState(value);
+  useMemo(() => {
+    const t = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(t);
+  }, [value, delay]);
+  return debounced;
+}
+
+export function useHospitalSearch(orgName: string) {
+  const debounced = useDebounce(orgName, 300);
+  return useQuery({
+    queryKey: ["hospitalSearch", debounced],
+    queryFn: () => hospitalSettingApi.search(debounced),
+    enabled: debounced.length > 0, // orgName required — อย่ายิงตอนว่าง
+  });
+}
+```
+
+```tsx
+// component ตัวอย่าง
+function HospitalAutocomplete({ onSelect }: { onSelect: (orgId: number) => void }) {
+  const [text, setText] = useState("");
+  const { data, isLoading } = useHospitalSearch(text);
+
+  return (
+    <div>
+      <input value={text} onChange={(e) => setText(e.target.value)} placeholder="ค้นหาสถานพยาบาล" />
+      {isLoading && <span>กำลังค้นหา...</span>}
+      <ul>
+        {data?.map((h) => (
+          <li key={h.orgId} onClick={() => onSelect(h.orgId)}>
+            {h.orgName}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+### 6.6 `api/transfer.ts` + hook — POST ที่โอนเงินจริง (mutation + confirm + กัน double-submit)
+
+```ts
+// api/transfer.ts
+import { http } from "./http";
+import { ServiceResponse, unwrap } from "./types";
+
+export interface CreatePaymentRequestDto {
+  casePayableId: string;
+  grossPaidAmount: number;
+  withHoldingTaxAmount: number;
+  netPaidAmount: number;
+  receivingBankId: number;
+  receivingBankAccountNo: string;
+  receivingBankName: string;
+  receivingAccountName: string;
+  phoneNumber: string;
+  claimCase: string;
+  claimNo: string;
+  payeeTypeId?: number;
+  paymentTypeId?: number;
+  userId?: number;
+}
+
+export interface CreatePaymentResponseDto {
+  itemCout: number;
+  totalNetPaidAmount: number | null;
+  isSuccess: boolean;
+  message: string | null;
+  payListHeaderId: string | null;
+  refTransactionId: string | null;
+  paymentCodeResponse: { paymentCode: string | null }[] | null;
+}
+
+export interface PaymentTransactionResponseDto {
+  paymentDate: string | null;
+  printDate: string | null;
+  admissionDate: string | null;
+  countItem: number;
+  paymentId: string;
+  totalNetPaidAmount: number | null;
+  customerName: string | null;
+  employee: string | null;
+  accountNo: string | null;
+  accountName: string | null;
+  bankName: string | null;
+  paymentCode: string | null;
+  paymentItemDetail:
+    | { claimNo: string | null; customerName: string | null; transactionAmount: number | null; bankName: string | null; approvedAmount: number | null }[]
+    | null;
+}
+
+export const transferApi = {
+  createPayment: (items: CreatePaymentRequestDto[]) =>
+    http
+      .post<ServiceResponse<CreatePaymentResponseDto>>(
+        "/api/Transfer/v1/CreatePayment",
+        items
+      )
+      .then(unwrap),
+
+  getPaymentDetails: (referenceCode: string) =>
+    http
+      .get<ServiceResponse<PaymentTransactionResponseDto>>(
+        "/api/Transfer/v1/PaymentDetails",
+        { params: { referenceCode } }
+      )
+      .then(unwrap),
+};
+```
+
+```tsx
+// hooks/useCreatePayment.ts
+import { useMutation } from "@tanstack/react-query";
+import { transferApi, CreatePaymentRequestDto } from "../api/transfer";
+
+export function useCreatePayment() {
+  return useMutation({
+    mutationFn: (items: CreatePaymentRequestDto[]) =>
+      transferApi.createPayment(items),
+  });
+}
+```
+
+```tsx
+// component ตัวอย่าง — confirm ก่อนโอน + disable ปุ่มกัน double-submit
+function ConfirmPaymentButton({ payload }: { payload: CreatePaymentRequestDto[] }) {
+  const { mutate, isPending } = useCreatePayment();
+  const [confirmOpen, setConfirmOpen] = useState(false);
+
+  const handleConfirm = () => {
+    setConfirmOpen(false);
+    mutate(payload, {
+      onSuccess: (data) => {
+        // data.refTransactionId → ใช้เรียก getPaymentDetails ต่อ
+        toast.success(`โอนเงินสำเร็จ ${data.itemCout} รายการ`);
+      },
+      onError: (err) => {
+        toast.error(err instanceof ApiError ? err.message : "เกิดข้อผิดพลาด");
+      },
+    });
+  };
+
+  return (
+    <>
+      <button disabled={isPending} onClick={() => setConfirmOpen(true)}>
+        {isPending ? "กำลังโอนเงิน..." : "ยืนยันการโอนเงิน"}
+      </button>
+      {confirmOpen && (
+        <ConfirmDialog
+          message={`ยืนยันโอนเงิน ${payload.length} รายการ?`}
+          onConfirm={handleConfirm}
+          onCancel={() => setConfirmOpen(false)}
+        />
+      )}
+    </>
+  );
+}
+```
+
+> จุดสำคัญ: `disabled={isPending}` + ปุ่มถูก disable ทันทีที่กด confirm คือแนวป้องกัน double-submit หลักในเมื่อ API ไม่มี idempotency key ให้ฝั่ง client เอง — **ห้าม** ให้ user กดซ้ำได้ระหว่างรอ response
+
+### 6.7 Global error handling (ตัวอย่าง React Query defaults)
+
+```tsx
+// main.tsx
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "./api/types";
+
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: (failureCount, error) => {
+        // ไม่ retry ถ้าเป็น business error (isSuccess: false) หรือ 401/403
+        if (error instanceof ApiError) return false;
+        return failureCount < 2;
+      },
+    },
+    mutations: {
+      onError: (error) => {
+        console.error(error); // ส่งเข้า logging service จริง เช่น Sentry
+      },
+    },
+  },
+});
+```
+
+---
+
+## 7. คำถามที่ต้องเคลียร์กับ Backend
 
 1. `UpdateSettingAutoTransfer` รับแค่ `paytransferSettingId` — จะส่งค่า `isAutoTransfer` ใหม่ยังไง?
 2. `holdStatusId` ดึงรายการมาจาก master ตัวไหน?
