@@ -2,7 +2,7 @@
 
 > **เวอร์ชัน:** v1.0.0  |  **มาตรฐาน:** OpenAPI 3.0.1  |  **อัปเดตล่าสุด:** 10 ตุลาคม 2569 (2026-10-10)
 
-> **ที่มาของ Spec:** `https://claimfundapi.uatsiamsmile.com/swagger/v1/swagger.json` (สภาพแวดล้อม UAT)
+> **ที่มาของ Spec:** ไฟล์ `ClaimfunAPISpecification.json` (swagger.json จาก `https://claimfundapi.uatsiamsmile.com`, สภาพแวดล้อม UAT)
 
 <a id="toc"></a>
 ## สารบัญ
@@ -54,6 +54,7 @@
         - 5.8.1 [`GET` GetApplicationVersionControl — Version ของ Application](#ep-get-version-getapplicationversioncontrol)
 6. [Data Models (Schemas)](#schemas)
 7. [ข้อสังเกตและข้อควรระวังจากการวิเคราะห์ Spec](#notes)
+8. [บันทึกการเปลี่ยนแปลง (Changelog)](#changelog)
 
 ---
 
@@ -110,13 +111,22 @@ Authorization: Bearer <access_token>
 
 > ⚠️ URL ข้างต้นเป็นสภาพแวดล้อม **UAT** (`uatsiamsmile.com`) ตามที่ระบุใน spec — ตรวจสอบค่าสำหรับ Production กับผู้ดูแลระบบ
 
-### 2.2 Endpoint ที่ไม่ใช้ OAuth 2.0
+### 2.2 Endpoint ที่ไม่ใช้ OAuth 2.0 / ใช้ API Key
 
 | Endpoint | วิธีการ |
 |---|---|
 | `POST /api/RemainingBalance/InsertRemainingBalance` | Header `apiKey` |
 | `GET /api/RemainingBalance/InsertRemainingBalance` | ไม่ระบุการยืนยันตัวตนใน spec |
 | `GET /Version/GetApplicationVersionControl` | ไม่ระบุการยืนยันตัวตนใน spec |
+
+**Endpoint ที่ต้องใช้ทั้ง OAuth 2.0 และ Header `apiKey`**
+
+| Endpoint |
+|---|
+| `GET /api/Notification/GetTransactionById` |
+| `POST /api/Notification/UpdateSMSTransactionSurvey` |
+| `POST /api/Notification/SaveSurveyFeedback` |
+| `GET /api/Notification/GetSurveyId` |
 
 ### 2.3 HTTP Status Codes
 
@@ -206,10 +216,10 @@ Endpoint `HospitalTransferMonitor` และ `HospitalTransferStatusMonitor` ร
 | 5.3.5 | `GET` | [`/api/Masters/GetHospitalTransferGroupStatuses`](#ep-get-api-masters-gethospitaltransfergroupstatuses) | ข้อมูลสถานะรายการของกรุ๊ปโอนเงินโรงพยาบาล (สำหรับ filter หน้าจอค้นหารายการโอนเงิน) | OAuth2 |
 | 5.3.6 | `GET` | [`/api/Masters/GetBankAccountRelationTypes`](#ep-get-api-masters-getbankaccountrelationtypes) | ข้อมูลประเภทความสัมพันธ์ของบัญชี กับผู้รับสินไหม | OAuth2 |
 | 5.3.7 | `GET` | [`/api/Masters/GetBankAccountRelationTypeById`](#ep-get-api-masters-getbankaccountrelationtypebyid) | ข้อมูลประเภทความสัมพันธ์ของบัญชี กับผู้รับสินไหม By Id | OAuth2 |
-| 5.4.1 | `GET` | [`/api/Notification/GetTransactionById`](#ep-get-api-notification-gettransactionbyid) | Get Transaction ของรายการส่ง SMS | OAuth2 |
-| 5.4.2 | `POST` | [`/api/Notification/UpdateSMSTransactionSurvey`](#ep-post-api-notification-updatesmstransactionsurvey) | Update SurveyId ใน SMSTransaction | OAuth2 |
-| 5.4.3 | `POST` | [`/api/Notification/SaveSurveyFeedback`](#ep-post-api-notification-savesurveyfeedback) | ผลตอบแบบประเมิน | OAuth2 |
-| 5.4.4 | `GET` | [`/api/Notification/GetSurveyId`](#ep-get-api-notification-getsurveyid) | Get surveyId | OAuth2 |
+| 5.4.1 | `GET` | [`/api/Notification/GetTransactionById`](#ep-get-api-notification-gettransactionbyid) | Get Transaction ของรายการส่ง SMS | OAuth2 + API Key |
+| 5.4.2 | `POST` | [`/api/Notification/UpdateSMSTransactionSurvey`](#ep-post-api-notification-updatesmstransactionsurvey) | Update SurveyId ใน SMSTransaction | OAuth2 + API Key |
+| 5.4.3 | `POST` | [`/api/Notification/SaveSurveyFeedback`](#ep-post-api-notification-savesurveyfeedback) | ผลตอบแบบประเมิน | OAuth2 + API Key |
+| 5.4.4 | `GET` | [`/api/Notification/GetSurveyId`](#ep-get-api-notification-getsurveyid) | Get surveyId | OAuth2 + API Key |
 | 5.5.1 | `POST` | [`/api/RemainingBalance/InsertRemainingBalance`](#ep-post-api-remainingbalance-insertremainingbalance) | Insert ยอดเงินคงเหลือของบัญชี | API Key |
 | 5.5.2 | `GET` | [`/api/RemainingBalance/InsertRemainingBalance`](#ep-get-api-remainingbalance-insertremainingbalance) | Get ข้อมูลยอดเงินคงเหลือในบัญชี | ไม่ระบุ |
 | 5.6.1 | `GET` | [`/api/Setting/GetCurrentSetting`](#ep-get-api-setting-getcurrentsetting) | ตั้งค่าการโอนเงิน | OAuth2 |
@@ -1531,13 +1541,14 @@ Response `200`: [BankAccountRelationTypeResponseDtoServiceResponse](#conventions
 GET /api/Notification/GetTransactionById
 ```
 
-**Authentication:** OAuth 2.0 — scope `ClaimFundAPI`
+**Authentication:** OAuth 2.0 — scope `ClaimFundAPI` และ Header `apiKey`
 
 **Parameters**
 
 | ชื่อ | ตำแหน่ง | ชนิดข้อมูล | จำเป็น | คำอธิบาย |
 |---|:---:|---|:---:|---|
 | `payTransferTransactionId` | query | string (uuid) | — |  |
+| `apiKey` | header | string | — |  |
 
 **Responses**
 
@@ -1583,7 +1594,13 @@ Response `200`: [GetSMSTransactionResponseServiceResponse](#conventions) — `da
 POST /api/Notification/UpdateSMSTransactionSurvey
 ```
 
-**Authentication:** OAuth 2.0 — scope `ClaimFundAPI`
+**Authentication:** OAuth 2.0 — scope `ClaimFundAPI` และ Header `apiKey`
+
+**Parameters**
+
+| ชื่อ | ตำแหน่ง | ชนิดข้อมูล | จำเป็น | คำอธิบาย |
+|---|:---:|---|:---:|---|
+| `apiKey` | header | string | — |  |
 
 **Request Body** (ไม่บังคับ)
 
@@ -1647,7 +1664,13 @@ Response `200`: [SMSTransacttionSurveyResponseServiceResponse](#conventions) —
 POST /api/Notification/SaveSurveyFeedback
 ```
 
-**Authentication:** OAuth 2.0 — scope `ClaimFundAPI`
+**Authentication:** OAuth 2.0 — scope `ClaimFundAPI` และ Header `apiKey`
+
+**Parameters**
+
+| ชื่อ | ตำแหน่ง | ชนิดข้อมูล | จำเป็น | คำอธิบาย |
+|---|:---:|---|:---:|---|
+| `apiKey` | header | string | — |  |
 
 **Request Body** (ไม่บังคับ)
 
@@ -1713,7 +1736,13 @@ Response `200`: [SaveSurveyFeedbackResponsetDtoServiceResponse](#conventions) �
 GET /api/Notification/GetSurveyId
 ```
 
-**Authentication:** OAuth 2.0 — scope `ClaimFundAPI`
+**Authentication:** OAuth 2.0 — scope `ClaimFundAPI` และ Header `apiKey`
+
+**Parameters**
+
+| ชื่อ | ตำแหน่ง | ชนิดข้อมูล | จำเป็น | คำอธิบาย |
+|---|:---:|---|:---:|---|
+| `apiKey` | header | string | — |  |
 
 **Responses**
 
@@ -2315,6 +2344,7 @@ Response `200`: [PaymentTransactionResponseDtoServiceResponse](#conventions) —
 | `accountName` | string | — | ได้ |  |
 | `bankName` | string | — | ได้ |  |
 | `paymentCode` | string | — | ได้ |  |
+| `transRefNo` | string | — | ได้ |  |
 | `paymentItemDetail` | array&lt;[PaymentItemDetailDto](#schema-PaymentItemDetailDto)&gt; | — | ได้ |  |
 | `paymentItemDetail[].claimNo` | string | — | ได้ |  |
 | `paymentItemDetail[].customerName` | string | — | ได้ |  |
@@ -2339,6 +2369,7 @@ Response `200`: [PaymentTransactionResponseDtoServiceResponse](#conventions) —
     "accountName": "string",
     "bankName": "string",
     "paymentCode": "string",
+    "transRefNo": "string",
     "paymentItemDetail": [
       {
         "claimNo": "string",
@@ -2422,7 +2453,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | [PayTransferSettingResponseDto](#schema-PayTransferSettingResponseDto) | 3 |
 | [PaymentItemDetailDto](#schema-PaymentItemDetailDto) | 5 |
 | [PaymentStatusResponseDto](#schema-PaymentStatusResponseDto) | 2 |
-| [PaymentTransactionResponseDto](#schema-PaymentTransactionResponseDto) | 13 |
+| [PaymentTransactionResponseDto](#schema-PaymentTransactionResponseDto) | 14 |
 | [RemainingBalanceReponseDto](#schema-RemainingBalanceReponseDto) | 2 |
 | [RemainingBalanceRequestDto](#schema-RemainingBalanceRequestDto) | 4 |
 | [SMSTransacttionSurveyRequest](#schema-SMSTransacttionSurveyRequest) | 2 |
@@ -2789,6 +2820,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | `accountName` | string | — | ได้ |  |
 | `bankName` | string | — | ได้ |  |
 | `paymentCode` | string | — | ได้ |  |
+| `transRefNo` | string | — | ได้ |  |
 | `paymentItemDetail` | array&lt;[PaymentItemDetailDto](#schema-PaymentItemDetailDto)&gt; | — | ได้ |  |
 | `paymentItemDetail[].claimNo` | string | — | ได้ |  |
 | `paymentItemDetail[].customerName` | string | — | ได้ |  |
@@ -2935,9 +2967,28 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 4. **ชื่อฟิลด์สะกดผิดใน Response** — `CreateTransferResponseDTO.itemCout` (น่าจะเป็น `itemCount`) ต้องใช้ชื่อตามที่ API คืนจริง
 5. **`GetHospitalTransferGroupStatuses`** ใช้ Response ชนิดเดียวกับ `GetPaymentStatuses` (`PaymentStatusResponseDto`)
 6. **`GET /api/Transfer/v1/PaymentDetails`** ไม่มี `summary` ใน spec
-7. **Endpoint ที่ไม่มี OAuth 2.0 security** — `RemainingBalance` (ใช้ Header `apiKey`) และ `Version/GetApplicationVersionControl`
+7. **Endpoint ที่ไม่มี OAuth 2.0 security** — `RemainingBalance` (ใช้ Header `apiKey`) และ `Version/GetApplicationVersionControl` ส่วน 4 Endpoint ของกลุ่ม `Notification` มีทั้ง OAuth 2.0 และ Header `apiKey` (ดู Changelog) แต่ spec ไม่ระบุว่า `apiKey` บังคับหรือไม่
 8. **ไม่มีการระบุ `servers`/Base URL** ใน spec — Base URL ของ UAT ในเอกสารนี้อนุมานจากที่อยู่ของไฟล์ swagger.json ส่วน Production ต้องขอจากผู้ดูแลระบบ
 9. **Query Parameter ส่วนใหญ่ไม่ได้ระบุ `required`** แม้ชื่อจะสื่อว่าจำเป็น (เช่น `transferId`, `hospitalPaymentSettingId`) — ควรทดสอบพฤติกรรมจริง
 10. **ฟิลด์ใน Request ที่ไม่มี `required`** ถือเป็น optional ตามนิยาม OpenAPI แต่ business rule อาจบังคับอยู่ที่ฝั่ง server
+
+[⬆ กลับสู่สารบัญ](#toc)
+
+<a id="changelog"></a>
+## 8. บันทึกการเปลี่ยนแปลง (Changelog)
+
+### 10 ตุลาคม 2569 — อัปเดตจากไฟล์ `ClaimfunAPISpecification.json`
+
+เทียบกับฉบับก่อนหน้า (`ClaimFundAPI.json`): จำนวน Endpoint (32) และ Schema (72) เท่าเดิม ไม่มีรายการเพิ่มหรือลบ
+
+| ประเภท | รายการ | การเปลี่ยนแปลง |
+|---|---|---|
+| Endpoint | [`GET /api/Notification/GetSurveyId`](#ep-get-api-notification-getsurveyid) | เพิ่ม Header parameter `apiKey` |
+| Endpoint | [`GET /api/Notification/GetTransactionById`](#ep-get-api-notification-gettransactionbyid) | เพิ่ม Header parameter `apiKey` |
+| Endpoint | [`POST /api/Notification/SaveSurveyFeedback`](#ep-post-api-notification-savesurveyfeedback) | เพิ่ม Header parameter `apiKey` |
+| Endpoint | [`POST /api/Notification/UpdateSMSTransactionSurvey`](#ep-post-api-notification-updatesmstransactionsurvey) | เพิ่ม Header parameter `apiKey` |
+| Schema | [`PaymentTransactionResponseDto`](#schema-PaymentTransactionResponseDto) | เพิ่มฟิลด์ `transRefNo` (string, nullable) |
+
+> Endpoint ทั้ง 4 ยังคงกำหนด OAuth 2.0 (scope `ClaimFundAPI`) ไว้ด้วย จึงต้องส่งทั้ง Bearer token และ Header `apiKey` — ควรยืนยันกับทีมพัฒนาว่าต้องใช้ทั้งสองอย่างจริงหรือไม่
 
 [⬆ กลับสู่สารบัญ](#toc)
