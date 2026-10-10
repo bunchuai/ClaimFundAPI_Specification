@@ -1,6 +1,8 @@
 # ClaimFundAPI — API Specification
 
-> **เวอร์ชัน:** v1.0.0  |  **มาตรฐาน:** OpenAPI 3.0.1  |  **วันที่จัดทำเอกสาร:** 9 ตุลาคม 2569 (2026-10-09)
+> **เวอร์ชัน:** v1.0.0  |  **มาตรฐาน:** OpenAPI 3.0.1  |  **อัปเดตล่าสุด:** 10 ตุลาคม 2569 (2026-10-10)
+
+> **ที่มาของ Spec:** `https://claimfundapi.uatsiamsmile.com/swagger/v1/swagger.json` (สภาพแวดล้อม UAT)
 
 <a id="toc"></a>
 ## สารบัญ
@@ -63,6 +65,7 @@ ClaimFundAPI เป็นบริการกลางสำหรับกา�
 - **จำนวน Endpoint:** 32 รายการ (8 กลุ่ม)
 - **จำนวน Schema:** 72 รายการ
 - **รูปแบบข้อมูล:** JSON ผ่าน HTTPS (REST)
+- **Base URL (UAT):** `https://claimfundapi.uatsiamsmile.com` — อนุมานจากที่อยู่ของ swagger.json เนื่องจาก spec ไม่ได้ระบุ `servers`
 
 | กลุ่ม | คำอธิบาย | จำนวน Endpoint |
 |---|---|:---:|
@@ -2933,7 +2936,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 5. **`GetHospitalTransferGroupStatuses`** ใช้ Response ชนิดเดียวกับ `GetPaymentStatuses` (`PaymentStatusResponseDto`)
 6. **`GET /api/Transfer/v1/PaymentDetails`** ไม่มี `summary` ใน spec
 7. **Endpoint ที่ไม่มี OAuth 2.0 security** — `RemainingBalance` (ใช้ Header `apiKey`) และ `Version/GetApplicationVersionControl`
-8. **ไม่มีการระบุ Server/Base URL** ใน spec — ต้องขอจากผู้ดูแลระบบ
+8. **ไม่มีการระบุ `servers`/Base URL** ใน spec — Base URL ของ UAT ในเอกสารนี้อนุมานจากที่อยู่ของไฟล์ swagger.json ส่วน Production ต้องขอจากผู้ดูแลระบบ
 9. **Query Parameter ส่วนใหญ่ไม่ได้ระบุ `required`** แม้ชื่อจะสื่อว่าจำเป็น (เช่น `transferId`, `hospitalPaymentSettingId`) — ควรทดสอบพฤติกรรมจริง
 10. **ฟิลด์ใน Request ที่ไม่มี `required`** ถือเป็น optional ตามนิยาม OpenAPI แต่ business rule อาจบังคับอยู่ที่ฝั่ง server
 
