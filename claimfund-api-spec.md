@@ -1,8 +1,8 @@
 # ClaimFundAPI — API Specification
 
-> **เวอร์ชัน:** v1.0.0  |  **มาตรฐาน:** OpenAPI 3.0.1  |  **อัปเดตล่าสุด:** 10 ตุลาคม 2569 (2026-10-10)
+> **เวอร์ชัน:** v1.0.0  |  **มาตรฐาน:** OpenAPI 3.0.1  |  **อัปเดตล่าสุด:** 14 ตุลาคม 2569 (2026-10-14)
 
-> **ที่มาของ Spec:** ไฟล์ `ClaimfunAPISpecification.json` (swagger.json จาก `https://claimfundapi.uatsiamsmile.com`, สภาพแวดล้อม UAT)
+> **ที่มาของ Spec:** ไฟล์ `swagger.json` ที่อัปโหลด (สภาพแวดล้อม UAT ตามที่ระบุใน `securitySchemes`)
 
 <a id="toc"></a>
 ## สารบัญ
@@ -47,9 +47,10 @@
         - 5.6.2 [`POST` UpdateSettingAutoTransfer — บันทึกการตั้งค่าการโอนเงิน](#ep-post-api-setting-updatesettingautotransfer)
         - 5.6.3 [`GET` SearchClaimOrCase — ค้นหารายการจาก เลขที่ ClaimNo / CaseNo](#ep-get-api-setting-searchclaimorcase)
     - 5.7 [การโอนเงิน (`Transfer`)](#group-transfer)
-        - 5.7.1 [`POST` CreateTransferResult — Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน](#ep-post-api-transfer-v1-createtransferresult)
-        - 5.7.2 [`POST` CreatePayment — สร้างรายการโอนเงิน และโอนเงิน](#ep-post-api-transfer-v1-createpayment)
-        - 5.7.3 [`GET` PaymentDetails — รายละเอียดรายการชำระเงิน (ตาม referenceCode)](#ep-get-api-transfer-v1-paymentdetails)
+        - 5.7.1 [`POST` CreateTransfer — Step 1 สร้างรายการโอนเงิน](#ep-post-api-transfer-v1-createtransfer)
+        - 5.7.2 [`POST` CreateTransferResult — Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน](#ep-post-api-transfer-v1-createtransferresult)
+        - 5.7.3 [`POST` CreatePayment — สร้างรายการโอนเงิน และโอนเงิน](#ep-post-api-transfer-v1-createpayment)
+        - 5.7.4 [`GET` PaymentDetails — รายละเอียดรายการชำระเงิน (ตาม referenceCode)](#ep-get-api-transfer-v1-paymentdetails)
     - 5.8 [เวอร์ชันแอปพลิเคชัน (`VersionControl`)](#group-versioncontrol)
         - 5.8.1 [`GET` GetApplicationVersionControl — Version ของ Application](#ep-get-version-getapplicationversioncontrol)
 6. [Data Models (Schemas)](#schemas)
@@ -63,10 +64,10 @@
 
 ClaimFundAPI เป็นบริการกลางสำหรับการโอนเงินเพื่อจ่ายค่าสินไหมทดแทนของการเคลมประกันภัย โดยรองรับการโอนเงินอย่างปลอดภัย การตรวจสอบความถูกต้องของบัญชีผู้รับเงิน การติดตามรายการธุรกรรม และการจัดการสถานะการชำระเงิน ผ่าน REST API ที่เป็นมาตรฐาน
 
-- **จำนวน Endpoint:** 32 รายการ (8 กลุ่ม)
-- **จำนวน Schema:** 72 รายการ
+- **จำนวน Endpoint:** 33 รายการ (8 กลุ่ม)
+- **จำนวน Schema:** 74 รายการ
 - **รูปแบบข้อมูล:** JSON ผ่าน HTTPS (REST)
-- **Base URL (UAT):** `https://claimfundapi.uatsiamsmile.com` — อนุมานจากที่อยู่ของ swagger.json เนื่องจาก spec ไม่ได้ระบุ `servers`
+- **Base URL (UAT):** `https://claimfundapi.uatsiamsmile.com` — ยึดตามเอกสารฉบับก่อนหน้า เนื่องจาก spec ไม่ได้ระบุ `servers`
 
 | กลุ่ม | คำอธิบาย | จำนวน Endpoint |
 |---|---|:---:|
@@ -76,7 +77,7 @@ ClaimFundAPI เป็นบริการกลางสำหรับกา�
 | [การแจ้งเตือนและแบบประเมิน](#group-notification) | ข้อมูลรายการ SMS และการจัดการแบบประเมินความพึงพอใจ (Survey) | 4 |
 | [ยอดเงินคงเหลือ](#group-remainingbalance) | บันทึกและเรียกดูยอดเงินคงเหลือของบัญชีธนาคาร | 2 |
 | [การตั้งค่าการโอนเงิน](#group-setting) | ตั้งค่าการโอนเงินอัตโนมัติ และค้นหารายการจากเลขที่ ClaimNo / CaseNo | 3 |
-| [การโอนเงิน](#group-transfer) | สร้างรายการโอนเงินค่าสินไหมทดแทน ตรวจสอบรายละเอียด และรับผลการโอน | 3 |
+| [การโอนเงิน](#group-transfer) | สร้างรายการโอนเงินค่าสินไหมทดแทน ตรวจสอบรายละเอียด และรับผลการโอน | 4 |
 | [เวอร์ชันแอปพลิเคชัน](#group-versioncontrol) | ตรวจสอบเวอร์ชันของแอปพลิเคชัน | 1 |
 
 [⬆ กลับสู่สารบัญ](#toc)
@@ -127,6 +128,7 @@ Authorization: Bearer <access_token>
 | `POST /api/Notification/UpdateSMSTransactionSurvey` |
 | `POST /api/Notification/SaveSurveyFeedback` |
 | `GET /api/Notification/GetSurveyId` |
+| `GET /api/Transfer/v1/PaymentDetails` |
 
 ### 2.3 HTTP Status Codes
 
@@ -177,7 +179,7 @@ Endpoint ส่วนใหญ่ตอบกลับด้วย Envelope เ�
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z",
+  "serverDateTime": "2026-10-14T10:00:00Z",
   "totalAmountRecords": 100.0,
   "totalAmountPages": 10.0,
   "currentPage": 1.0,
@@ -225,9 +227,10 @@ Endpoint `HospitalTransferMonitor` และ `HospitalTransferStatusMonitor` ร
 | 5.6.1 | `GET` | [`/api/Setting/GetCurrentSetting`](#ep-get-api-setting-getcurrentsetting) | ตั้งค่าการโอนเงิน | OAuth2 |
 | 5.6.2 | `POST` | [`/api/Setting/UpdateSettingAutoTransfer`](#ep-post-api-setting-updatesettingautotransfer) | บันทึกการตั้งค่าการโอนเงิน | OAuth2 |
 | 5.6.3 | `GET` | [`/api/Setting/SearchClaimOrCase`](#ep-get-api-setting-searchclaimorcase) | ค้นหารายการจาก เลขที่ ClaimNo / CaseNo | OAuth2 |
-| 5.7.1 | `POST` | [`/api/Transfer/v1/CreateTransferResult`](#ep-post-api-transfer-v1-createtransferresult) | Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน | OAuth2 |
-| 5.7.2 | `POST` | [`/api/Transfer/v1/CreatePayment`](#ep-post-api-transfer-v1-createpayment) | สร้างรายการโอนเงิน และโอนเงิน | OAuth2 |
-| 5.7.3 | `GET` | [`/api/Transfer/v1/PaymentDetails`](#ep-get-api-transfer-v1-paymentdetails) | รายละเอียดรายการชำระเงิน (ตาม referenceCode) | OAuth2 |
+| 5.7.1 | `POST` | [`/api/Transfer/v1/CreateTransfer`](#ep-post-api-transfer-v1-createtransfer) | Step 1 สร้างรายการโอนเงิน | OAuth2 |
+| 5.7.2 | `POST` | [`/api/Transfer/v1/CreateTransferResult`](#ep-post-api-transfer-v1-createtransferresult) | Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน | OAuth2 |
+| 5.7.3 | `POST` | [`/api/Transfer/v1/CreatePayment`](#ep-post-api-transfer-v1-createpayment) | สร้างรายการโอนเงิน และโอนเงิน | OAuth2 |
+| 5.7.4 | `GET` | [`/api/Transfer/v1/PaymentDetails`](#ep-get-api-transfer-v1-paymentdetails) | รายละเอียดรายการชำระเงิน (ตาม referenceCode) | OAuth2 + API Key |
 | 5.8.1 | `GET` | [`/Version/GetApplicationVersionControl`](#ep-get-version-getapplicationversioncontrol) | Version ของ Application | ไม่ระบุ |
 
 [⬆ กลับสู่สารบัญ](#toc)
@@ -286,7 +289,7 @@ Response `200`: [SearchHospitalResponseDtoListServiceResponse](#conventions) —
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -343,14 +346,14 @@ Response `200`: [HospitalSettingMonitorReponseDtoListServiceResponse](#conventio
       "delayDays": 0,
       "holdStatusId": 0,
       "holdStatusName": "string",
-      "updatedDate": "2026-10-09T10:00:00Z"
+      "updatedDate": "2026-10-14T10:00:00Z"
     }
   ],
   "isSuccess": true,
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z",
+  "serverDateTime": "2026-10-14T10:00:00Z",
   "totalAmountRecords": 100.0,
   "totalAmountPages": 10.0,
   "currentPage": 1.0,
@@ -427,7 +430,7 @@ Response `200`: [AddHospitalSettingResponseDtoServiceResponse](#conventions) —
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -497,7 +500,7 @@ Response `200`: [UpdateHospitalSettingResponseDtoServiceResponse](#conventions) 
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -545,7 +548,7 @@ Response `200`: [HistoryResponseDtoListServiceResponse](#conventions) — `data`
   "data": [
     {
       "actionName": "string",
-      "createdDate": "2026-10-09T10:00:00Z",
+      "createdDate": "2026-10-14T10:00:00Z",
       "createdByUser": "string"
     }
   ],
@@ -553,7 +556,7 @@ Response `200`: [HistoryResponseDtoListServiceResponse](#conventions) — `data`
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -650,7 +653,7 @@ Response `200`: [HospitalTransferGroupMonitorResponseDtoListServiceResponse](#co
       "billControlNo": "string",
       "caseId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "caseNo": "string",
-      "billSentDate": "2026-10-09T10:00:00Z",
+      "billSentDate": "2026-10-14T10:00:00Z",
       "insuredName": "string",
       "hospitalId": 0,
       "hospitalName": "string",
@@ -665,7 +668,7 @@ Response `200`: [HospitalTransferGroupMonitorResponseDtoListServiceResponse](#co
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z",
+  "serverDateTime": "2026-10-14T10:00:00Z",
   "totalAmountRecords": 100.0,
   "totalAmountPages": 10.0,
   "currentPage": 1.0,
@@ -745,6 +748,7 @@ Response `200`: [HospitalTransferStatusMonitorResponseDtoListServiceResponse](#c
 | `statusCode` | string | — | ได้ | รหัสสถานะสำหรับแสดงผล เช่น waiting-transfer |
 | `isSelectable` | boolean | — | — | เลือกรายการเพื่อดำเนินการต่อได้หรือไม่ |
 | `actionId` | string (uuid) | — | — | รหัสรายการสำหรับดำเนินการ |
+| `isSendEmail` | boolean | — | ได้ |  |
 
 ตัวอย่าง Response:
 
@@ -754,8 +758,8 @@ Response `200`: [HospitalTransferStatusMonitorResponseDtoListServiceResponse](#c
     {
       "paymentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "paymentCode": "string",
-      "paymentDate": "2026-10-09T10:00:00Z",
-      "expectedPaymentDate": "2026-10-09T10:00:00Z",
+      "paymentDate": "2026-10-14T10:00:00Z",
+      "expectedPaymentDate": "2026-10-14T10:00:00Z",
       "hospitalId": 0,
       "hospitalName": "string",
       "itemCount": 0,
@@ -768,14 +772,15 @@ Response `200`: [HospitalTransferStatusMonitorResponseDtoListServiceResponse](#c
       "statusNameTH": "string",
       "statusCode": "string",
       "isSelectable": true,
-      "actionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+      "actionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+      "isSendEmail": true
     }
   ],
   "isSuccess": true,
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z",
+  "serverDateTime": "2026-10-14T10:00:00Z",
   "totalAmountRecords": 100.0,
   "totalAmountPages": 10.0,
   "currentPage": 1.0,
@@ -854,8 +859,8 @@ Response `200`: [HospitalTransferDetailResponseDtoServiceResponse](#conventions)
     "toBank": "string",
     "toAccountNo": "string",
     "toAccountName": "string",
-    "paymentDate": "2026-10-09T10:00:00Z",
-    "expectedPaymentDate": "2026-10-09T10:00:00Z",
+    "paymentDate": "2026-10-14T10:00:00Z",
+    "expectedPaymentDate": "2026-10-14T10:00:00Z",
     "totalGrossPaidAmount": 0.0,
     "totalWithHoldingTaxAmount": 0.0,
     "totalNetPaidAmount": 0.0,
@@ -875,7 +880,7 @@ Response `200`: [HospitalTransferDetailResponseDtoServiceResponse](#conventions)
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -949,7 +954,7 @@ Response `200`: [CreateTransferResponseDTOServiceResponse](#conventions) — `da
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1040,7 +1045,7 @@ Response `200`: [CreatePaymentResponseDtoServiceResponse](#conventions) — `dat
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1108,7 +1113,7 @@ Response `200`: [HospitalTransferGroupResponseDtoServiceResponse](#conventions) 
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1134,12 +1139,14 @@ Schema: [SendEmailToHospitalRequestDto](#schema-SendEmailToHospitalRequestDto)
 | ฟิลด์ | ชนิดข้อมูล | จำเป็น | Nullable | คำอธิบาย |
 |---|---|:---:|:---:|---|
 | `paymentId` | string (uuid) | ✅ | — |  |
+| `templateId` | integer (int32) | ✅ | — |  |
 
 ตัวอย่าง:
 
 ```json
 {
-  "paymentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+  "paymentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "templateId": 0
 }
 ```
 
@@ -1172,7 +1179,7 @@ Response `200`: [SendEmailResponseDtoServiceResponse](#conventions) — `data` �
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1225,7 +1232,7 @@ Response `200`: [AdjustmentReasonResponseDtoListServiceResponse](#conventions) �
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1277,7 +1284,7 @@ Response `200`: [AdjustmentReasonResponseDtoServiceResponse](#conventions) — `
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1325,7 +1332,7 @@ Response `200`: [TransferStatusResponseDtoListServiceResponse](#conventions) —
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1373,7 +1380,7 @@ Response `200`: [PaymentStatusResponseDtoListServiceResponse](#conventions) — 
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1421,7 +1428,7 @@ Response `200`: [PaymentStatusResponseDtoListServiceResponse](#conventions) — 
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1469,7 +1476,7 @@ Response `200`: [BankAccountRelationTypeResponseDtoListServiceResponse](#convent
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1521,7 +1528,7 @@ Response `200`: [BankAccountRelationTypeResponseDtoServiceResponse](#conventions
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1579,7 +1586,7 @@ Response `200`: [GetSMSTransactionResponseServiceResponse](#conventions) — `da
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1649,7 +1656,7 @@ Response `200`: [SMSTransacttionSurveyResponseServiceResponse](#conventions) —
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1721,7 +1728,7 @@ Response `200`: [SaveSurveyFeedbackResponsetDtoServiceResponse](#conventions) �
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1771,7 +1778,7 @@ Response `200`: [GetSurveyIdResponseDtoServiceResponse](#conventions) — `data`
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1850,7 +1857,7 @@ Response `200`: [RemainingBalanceReponseDtoServiceResponse](#conventions) — `d
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1920,7 +1927,7 @@ Response `200`: [GetDataByAccountDetailResponseDtoServiceResponse](#conventions)
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -1976,7 +1983,7 @@ Response `200`: [PayTransferSettingResponseDtoServiceResponse](#conventions) —
         "createdByUser": "string",
         "employeeCode": "string",
         "isAutoTransfer": true,
-        "createdDate": "2026-10-09T10:00:00Z"
+        "createdDate": "2026-10-14T10:00:00Z"
       }
     ]
   },
@@ -1984,7 +1991,7 @@ Response `200`: [PayTransferSettingResponseDtoServiceResponse](#conventions) —
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -2046,7 +2053,7 @@ Response `200`: [UpdatePayTransferSettingRequestDtoServiceResponse](#conventions
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -2101,7 +2108,7 @@ Response `200`: [SearchClaimOrCaseResponseDtoListServiceResponse](#conventions) 
       "caseId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "claimId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
       "claimCase": "string",
-      "createdClaimDate": "2026-10-09T10:00:00Z",
+      "createdClaimDate": "2026-10-14T10:00:00Z",
       "customerName": "string",
       "coverageType": "string",
       "caseAmount": 0.0,
@@ -2112,7 +2119,7 @@ Response `200`: [SearchClaimOrCaseResponseDtoListServiceResponse](#conventions) 
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -2125,8 +2132,109 @@ Response `200`: [SearchClaimOrCaseResponseDtoListServiceResponse](#conventions) 
 
 สร้างรายการโอนเงินค่าสินไหมทดแทน ตรวจสอบรายละเอียด และรับผลการโอน
 
+<a id="ep-post-api-transfer-v1-createtransfer"></a>
+#### 5.7.1 Step 1 สร้างรายการโอนเงิน
+
+```http
+POST /api/Transfer/v1/CreateTransfer
+```
+
+**Authentication:** OAuth 2.0 — scope `ClaimFundAPI`
+
+**Request Body** (ไม่บังคับ)
+
+`Content-Type: application/json`
+
+Schema: [ClaimPayListHeaderCreateDTO](#schema-ClaimPayListHeaderCreateDTO)
+
+| ฟิลด์ | ชนิดข้อมูล | จำเป็น | Nullable | คำอธิบาย |
+|---|---|:---:|:---:|---|
+| `totalNetPaidAmount` | number (double) | ✅ | — |  |
+| `receivingBankId` | integer (int32) | ✅ | — | (ค่าต่ำสุด 1, ค่าสูงสุด 2147483647) |
+| `receivingBankAccountNo` | string | ✅ | — |  |
+| `receivingBankName` | string | ✅ | — |  |
+| `receivingAccountName` | string | ✅ | — |  |
+| `receivingPhoneNumber` | string | ✅ | — |  |
+| `referentTransactionId` | string (uuid) | ✅ | — |  |
+| `referenceCode` | string | ✅ | — |  |
+| `claimPayListHeaderCreateDetailDTO` | array&lt;[ClaimPayListHeaderCreateDetailDTO](#schema-ClaimPayListHeaderCreateDetailDTO)&gt; | — | ได้ |  |
+| `claimPayListHeaderCreateDetailDTO[].payListDetailCode` | string | — | — |  |
+| `claimPayListHeaderCreateDetailDTO[].amount` | number (double) | — | ได้ |  |
+| `claimPayListHeaderCreateDetailDTO[].refDetail01` | string | — | ได้ |  |
+| `claimPayListHeaderCreateDetailDTO[].refDetail02` | string | — | ได้ |  |
+
+ตัวอย่าง:
+
+```json
+{
+  "totalNetPaidAmount": 0.0,
+  "receivingBankId": 0,
+  "receivingBankAccountNo": "string",
+  "receivingBankName": "string",
+  "receivingAccountName": "string",
+  "receivingPhoneNumber": "0812345678",
+  "referentTransactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "referenceCode": "string",
+  "claimPayListHeaderCreateDetailDTO": [
+    {
+      "payListDetailCode": "string",
+      "amount": 0.0,
+      "refDetail01": "string",
+      "refDetail02": "string"
+    }
+  ]
+}
+```
+
+**Responses**
+
+| Status | คำอธิบาย |
+|:---:|---|
+| `200` | Success |
+| `401` | Unauthorized |
+| `403` | Forbidden |
+
+Response `200`: [CreateTransferResponseDTOServiceResponse](#conventions) — `data` เป็น object ของ [CreateTransferResponseDTO](#schema-CreateTransferResponseDTO)
+
+**ฟิลด์ใน `data`**
+
+| ฟิลด์ | ชนิดข้อมูล | จำเป็น | Nullable | คำอธิบาย |
+|---|---|:---:|:---:|---|
+| `itemCout` | integer (int32) | — | — |  |
+| `totalNetPaidAmount` | number (double) | — | ได้ |  |
+| `isSuccess` | boolean | — | — |  |
+| `message` | string | — | ได้ |  |
+| `payListHeaderId` | string (uuid) | — | ได้ |  |
+| `refTransactionId` | string (uuid) | — | ได้ |  |
+| `paymentItemCount` | integer (int32) | — | — |  |
+
+ตัวอย่าง Response:
+
+```json
+{
+  "data": {
+    "itemCout": 0,
+    "totalNetPaidAmount": 0.0,
+    "isSuccess": true,
+    "message": "string",
+    "payListHeaderId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "refTransactionId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+    "paymentItemCount": 0
+  },
+  "isSuccess": true,
+  "message": null,
+  "code": 200,
+  "exceptionMessage": null,
+  "serverDateTime": "2026-10-14T10:00:00Z"
+}
+```
+
+[⬆ กลับสู่สารบัญ](#toc)
+
+---
+
 <a id="ep-post-api-transfer-v1-createtransferresult"></a>
-#### 5.7.1 Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน
+#### 5.7.2 Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน
 
 ```http
 POST /api/Transfer/v1/CreateTransferResult
@@ -2164,8 +2272,8 @@ Schema: [PayListResult](#schema-PayListResult)
   "statusBank": "string",
   "description": "string",
   "descriptionTh": "string",
-  "transferDate": "2026-10-09T10:00:00Z",
-  "updatedDate": "2026-10-09T10:00:00Z",
+  "transferDate": "2026-10-14T10:00:00Z",
+  "updatedDate": "2026-10-14T10:00:00Z",
   "payResultStatusId": 0,
   "payResultDescription": "string",
   "transType": "string"
@@ -2187,7 +2295,7 @@ _ไม่มีการระบุโครงสร้าง Response body �
 ---
 
 <a id="ep-post-api-transfer-v1-createpayment"></a>
-#### 5.7.2 สร้างรายการโอนเงิน และโอนเงิน
+#### 5.7.3 สร้างรายการโอนเงิน และโอนเงิน
 
 ```http
 POST /api/Transfer/v1/CreatePayment
@@ -2293,7 +2401,7 @@ Response `200`: [CreatePaymentResponseDtoServiceResponse](#conventions) — `dat
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -2302,7 +2410,7 @@ Response `200`: [CreatePaymentResponseDtoServiceResponse](#conventions) — `dat
 ---
 
 <a id="ep-get-api-transfer-v1-paymentdetails"></a>
-#### 5.7.3 รายละเอียดรายการชำระเงิน (ตาม referenceCode)
+#### 5.7.4 รายละเอียดรายการชำระเงิน (ตาม referenceCode)
 
 ```http
 GET /api/Transfer/v1/PaymentDetails
@@ -2310,13 +2418,14 @@ GET /api/Transfer/v1/PaymentDetails
 
 > ℹ️ Endpoint นี้ไม่มี `summary` ใน spec ต้นฉบับ ชื่อข้างต้นตั้งโดยผู้จัดทำเอกสารจากชื่อ Endpoint และ Response
 
-**Authentication:** OAuth 2.0 — scope `ClaimFundAPI`
+**Authentication:** OAuth 2.0 — scope `ClaimFundAPI` และ Header `apiKey`
 
 **Parameters**
 
 | ชื่อ | ตำแหน่ง | ชนิดข้อมูล | จำเป็น | คำอธิบาย |
 |---|:---:|---|:---:|---|
 | `referenceCode` | query | string (uuid) | ✅ |  |
+| `apiKey` | header | string | — |  |
 
 **Responses**
 
@@ -2357,9 +2466,9 @@ Response `200`: [PaymentTransactionResponseDtoServiceResponse](#conventions) —
 ```json
 {
   "data": {
-    "paymentDate": "2026-10-09T10:00:00Z",
-    "printDate": "2026-10-09T10:00:00Z",
-    "admissionDate": "2026-10-09T10:00:00Z",
+    "paymentDate": "2026-10-14T10:00:00Z",
+    "printDate": "2026-10-14T10:00:00Z",
+    "admissionDate": "2026-10-14T10:00:00Z",
     "countItem": 0,
     "paymentId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
     "totalNetPaidAmount": 0.0,
@@ -2384,7 +2493,7 @@ Response `200`: [PaymentTransactionResponseDtoServiceResponse](#conventions) —
   "message": null,
   "code": 200,
   "exceptionMessage": null,
-  "serverDateTime": "2026-10-09T10:00:00Z"
+  "serverDateTime": "2026-10-14T10:00:00Z"
 }
 ```
 
@@ -2429,6 +2538,8 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | [AddHospitalSettingResponseDto](#schema-AddHospitalSettingResponseDto) | 2 |
 | [AdjustmentReasonResponseDto](#schema-AdjustmentReasonResponseDto) | 2 |
 | [BankAccountRelationTypeResponseDto](#schema-BankAccountRelationTypeResponseDto) | 2 |
+| [ClaimPayListHeaderCreateDTO](#schema-ClaimPayListHeaderCreateDTO) | 9 |
+| [ClaimPayListHeaderCreateDetailDTO](#schema-ClaimPayListHeaderCreateDetailDTO) | 4 |
 | [CreatePaymentCodeResponseDto](#schema-CreatePaymentCodeResponseDto) | 4 |
 | [CreatePaymentHospitalRequestDto](#schema-CreatePaymentHospitalRequestDto) | 2 |
 | [CreatePaymentRequestDto](#schema-CreatePaymentRequestDto) | 14 |
@@ -2446,7 +2557,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | [HospitalTransferGroupRequestDto](#schema-HospitalTransferGroupRequestDto) | 1 |
 | [HospitalTransferGroupResponseDto](#schema-HospitalTransferGroupResponseDto) | 2 |
 | [HospitalTransferMonitorFilterDto](#schema-HospitalTransferMonitorFilterDto) | 2 |
-| [HospitalTransferStatusMonitorResponseDto](#schema-HospitalTransferStatusMonitorResponseDto) | 17 |
+| [HospitalTransferStatusMonitorResponseDto](#schema-HospitalTransferStatusMonitorResponseDto) | 18 |
 | [JToken](#schema-JToken) | - |
 | [PayListResult](#schema-PayListResult) | 11 |
 | [PayTransferSettingHistoryResponseDto](#schema-PayTransferSettingHistoryResponseDto) | 4 |
@@ -2463,7 +2574,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | [SearchClaimOrCaseResponseDto](#schema-SearchClaimOrCaseResponseDto) | 8 |
 | [SearchHospitalResponseDto](#schema-SearchHospitalResponseDto) | 2 |
 | [SendEmailResponseDto](#schema-SendEmailResponseDto) | 2 |
-| [SendEmailToHospitalRequestDto](#schema-SendEmailToHospitalRequestDto) | 1 |
+| [SendEmailToHospitalRequestDto](#schema-SendEmailToHospitalRequestDto) | 2 |
 | [TransferHospitalRequestDto](#schema-TransferHospitalRequestDto) | 1 |
 | [TransferStatusResponseDto](#schema-TransferStatusResponseDto) | 2 |
 | [UpdateHospitalSettingRequestDto](#schema-UpdateHospitalSettingRequestDto) | 4 |
@@ -2504,6 +2615,35 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 |---|---|:---:|:---:|---|
 | `id` | integer (int32) | — | — |  |
 | `name` | string | — | ได้ |  |
+
+<a id="schema-ClaimPayListHeaderCreateDTO"></a>
+### `ClaimPayListHeaderCreateDTO`
+
+| ฟิลด์ | ชนิดข้อมูล | จำเป็น | Nullable | คำอธิบาย |
+|---|---|:---:|:---:|---|
+| `totalNetPaidAmount` | number (double) | ✅ | — |  |
+| `receivingBankId` | integer (int32) | ✅ | — | (ค่าต่ำสุด 1, ค่าสูงสุด 2147483647) |
+| `receivingBankAccountNo` | string | ✅ | — |  |
+| `receivingBankName` | string | ✅ | — |  |
+| `receivingAccountName` | string | ✅ | — |  |
+| `receivingPhoneNumber` | string | ✅ | — |  |
+| `referentTransactionId` | string (uuid) | ✅ | — |  |
+| `referenceCode` | string | ✅ | — |  |
+| `claimPayListHeaderCreateDetailDTO` | array&lt;[ClaimPayListHeaderCreateDetailDTO](#schema-ClaimPayListHeaderCreateDetailDTO)&gt; | — | ได้ |  |
+| `claimPayListHeaderCreateDetailDTO[].payListDetailCode` | string | — | — |  |
+| `claimPayListHeaderCreateDetailDTO[].amount` | number (double) | — | ได้ |  |
+| `claimPayListHeaderCreateDetailDTO[].refDetail01` | string | — | ได้ |  |
+| `claimPayListHeaderCreateDetailDTO[].refDetail02` | string | — | ได้ |  |
+
+<a id="schema-ClaimPayListHeaderCreateDetailDTO"></a>
+### `ClaimPayListHeaderCreateDetailDTO`
+
+| ฟิลด์ | ชนิดข้อมูล | จำเป็น | Nullable | คำอธิบาย |
+|---|---|:---:|:---:|---|
+| `payListDetailCode` | string | ✅ | — |  |
+| `amount` | number (double) | — | ได้ |  |
+| `refDetail01` | string | — | ได้ |  |
+| `refDetail02` | string | — | ได้ |  |
 
 <a id="schema-CreatePaymentCodeResponseDto"></a>
 ### `CreatePaymentCodeResponseDto`
@@ -2738,6 +2878,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | `statusCode` | string | — | ได้ | รหัสสถานะสำหรับแสดงผล เช่น waiting-transfer |
 | `isSelectable` | boolean | — | — | เลือกรายการเพื่อดำเนินการต่อได้หรือไม่ |
 | `actionId` | string (uuid) | — | — | รหัสรายการสำหรับดำเนินการ |
+| `isSendEmail` | boolean | — | ได้ |  |
 
 <a id="schema-JToken"></a>
 ### `JToken`
@@ -2913,6 +3054,7 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | ฟิลด์ | ชนิดข้อมูล | จำเป็น | Nullable | คำอธิบาย |
 |---|---|:---:|:---:|---|
 | `paymentId` | string (uuid) | ✅ | — |  |
+| `templateId` | integer (int32) | ✅ | — |  |
 
 <a id="schema-TransferHospitalRequestDto"></a>
 ### `TransferHospitalRequestDto`
@@ -2962,20 +3104,36 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 ข้อสังเกตต่อไปนี้พบจากการอ่านไฟล์ OpenAPI ควรยืนยันกับทีมพัฒนาก่อนนำไปใช้งานจริง:
 
 1. **`GET /api/RemainingBalance/InsertRemainingBalance` มี Request Body** — ปกติ HTTP GET ไม่ควรมี body และ client บางตัวไม่รองรับ อีกทั้งใช้ path เดียวกับ POST ที่เป็นการ Insert (ชื่อ Endpoint ไม่สื่อว่าเป็นการอ่านข้อมูล)
-2. **`POST /api/Transfer/v1/CreateTransferResult`** — ชื่อใน spec ระบุว่า "Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน" ดูเหมือนเป็น Endpoint สำหรับทดสอบ/รับผลจากระบบโอนเงิน และไม่ระบุ Response body
+2. **กลุ่ม `Transfer` ระบุลำดับขั้นตอนในชื่อ** — `CreateTransfer` คือ "Step 1 สร้างรายการโอนเงิน" และ `CreateTransferResult` คือ "Step 3 CreatedTransfer ทดสอบผลการสร้างรายการโอนเงิน" แต่ไม่พบ Endpoint ที่ระบุว่าเป็น Step 2 ส่วน `CreatePayment` มีชื่อว่า "สร้างรายการโอนเงิน และโอนเงิน" ควรยืนยันลำดับการเรียกใช้กับทีมพัฒนา อีกทั้ง `CreateTransferResult` ไม่ระบุ Response body
 3. **`UpdateSettingAutoTransfer`** — Response `data` ใช้ชนิดเดียวกับ Request (`UpdatePayTransferSettingRequestDto`) แทนที่จะเป็น Response DTO แยก
-4. **ชื่อฟิลด์สะกดผิดใน Response** — `CreateTransferResponseDTO.itemCout` (น่าจะเป็น `itemCount`) ต้องใช้ชื่อตามที่ API คืนจริง
-5. **`GetHospitalTransferGroupStatuses`** ใช้ Response ชนิดเดียวกับ `GetPaymentStatuses` (`PaymentStatusResponseDto`)
-6. **`GET /api/Transfer/v1/PaymentDetails`** ไม่มี `summary` ใน spec
-7. **Endpoint ที่ไม่มี OAuth 2.0 security** — `RemainingBalance` (ใช้ Header `apiKey`) และ `Version/GetApplicationVersionControl` ส่วน 4 Endpoint ของกลุ่ม `Notification` มีทั้ง OAuth 2.0 และ Header `apiKey` (ดู Changelog) แต่ spec ไม่ระบุว่า `apiKey` บังคับหรือไม่
-8. **ไม่มีการระบุ `servers`/Base URL** ใน spec — Base URL ของ UAT ในเอกสารนี้อนุมานจากที่อยู่ของไฟล์ swagger.json ส่วน Production ต้องขอจากผู้ดูแลระบบ
-9. **Query Parameter ส่วนใหญ่ไม่ได้ระบุ `required`** แม้ชื่อจะสื่อว่าจำเป็น (เช่น `transferId`, `hospitalPaymentSettingId`) — ควรทดสอบพฤติกรรมจริง
-10. **ฟิลด์ใน Request ที่ไม่มี `required`** ถือเป็น optional ตามนิยาม OpenAPI แต่ business rule อาจบังคับอยู่ที่ฝั่ง server
+4. **ชื่อฟิลด์สะกดผิดใน Response** — `CreateTransferResponseDTO.itemCout` (น่าจะเป็น `itemCount`) ซึ่ง DTO นี้ใช้ทั้งใน `CreateTransfer` และ `TransferHospital` ต้องใช้ชื่อตามที่ API คืนจริง
+5. **ความไม่สอดคล้องของชื่อฟิลด์ใน Request ของกลุ่ม `Transfer`** — `ClaimPayListHeaderCreateDTO` ใช้ `receivingPhoneNumber` และ `referentTransactionId` ขณะที่ `CreatePaymentRequestDto` ใช้ `phoneNumber` ควรยืนยันการสะกดและความหมายของ `referentTransactionId` / `referenceCode` กับทีมพัฒนา
+6. **`GetHospitalTransferGroupStatuses`** ใช้ Response ชนิดเดียวกับ `GetPaymentStatuses` (`PaymentStatusResponseDto`)
+7. **`GET /api/Transfer/v1/PaymentDetails`** ไม่มี `summary` ใน spec
+8. **Endpoint ที่ไม่มี OAuth 2.0 security** — `RemainingBalance` (POST ใช้ Header `apiKey`, GET ไม่ระบุ) และ `Version/GetApplicationVersionControl` ส่วน Endpoint ที่มี Header `apiKey` ร่วมกับ OAuth 2.0 (กลุ่ม `Notification` ทั้ง 4 รายการ และ `PaymentDetails`) spec ไม่ระบุว่า `apiKey` บังคับหรือไม่
+9. **ไม่มีการระบุ `servers`/Base URL** ใน spec — Base URL ของ UAT ในเอกสารนี้ยึดตามเอกสารฉบับก่อนหน้า ส่วน Production ต้องขอจากผู้ดูแลระบบ
+10. **Query Parameter ส่วนใหญ่ไม่ได้ระบุ `required`** แม้ชื่อจะสื่อว่าจำเป็น (เช่น `transferId`, `hospitalPaymentSettingId`) — ควรทดสอบพฤติกรรมจริง
+11. **ฟิลด์ใน Request ที่ไม่มี `required`** ถือเป็น optional ตามนิยาม OpenAPI แต่ business rule อาจบังคับอยู่ที่ฝั่ง server
 
 [⬆ กลับสู่สารบัญ](#toc)
 
 <a id="changelog"></a>
 ## 8. บันทึกการเปลี่ยนแปลง (Changelog)
+
+### 14 ตุลาคม 2569 — อัปเดตจากไฟล์ `swagger.json` ที่อัปโหลดล่าสุด
+
+เทียบกับฉบับ 10 ตุลาคม 2569: จำนวน Endpoint เพิ่มจาก 32 เป็น 33 และ Schema เพิ่มจาก 72 เป็น 74
+
+| ประเภท | รายการ | การเปลี่ยนแปลง |
+|---|---|---|
+| Endpoint | [`POST /api/Transfer/v1/CreateTransfer`](#ep-post-api-transfer-v1-createtransfer) | **เพิ่มใหม่** — Step 1 สร้างรายการโอนเงิน (Request: `ClaimPayListHeaderCreateDTO`, Response: `CreateTransferResponseDTO`) |
+| Endpoint | [`GET /api/Transfer/v1/PaymentDetails`](#ep-get-api-transfer-v1-paymentdetails) | เพิ่ม Header parameter `apiKey` |
+| Schema | [`HospitalTransferStatusMonitorResponseDto`](#schema-HospitalTransferStatusMonitorResponseDto) | เพิ่มฟิลด์ `isSendEmail` (boolean, nullable) |
+| Schema | [`SendEmailToHospitalRequestDto`](#schema-SendEmailToHospitalRequestDto) | เพิ่มฟิลด์ `templateId` (integer, **จำเป็น**) — Request ของ `SendEmailToHospital` ต้องส่ง `templateId` เพิ่มจาก `paymentId` |
+| Schema | [`ClaimPayListHeaderCreateDTO`](#schema-ClaimPayListHeaderCreateDTO) | **เพิ่มใหม่** (9 ฟิลด์) |
+| Schema | [`ClaimPayListHeaderCreateDetailDTO`](#schema-ClaimPayListHeaderCreateDetailDTO) | **เพิ่มใหม่** (4 ฟิลด์) |
+
+> `PaymentDetails` ยังคงกำหนด OAuth 2.0 ไว้ด้วย จึงต้องส่งทั้ง Bearer token และ Header `apiKey` — ควรยืนยันกับทีมพัฒนาว่าต้องใช้ทั้งสองอย่างจริงหรือไม่
 
 ### 10 ตุลาคม 2569 — อัปเดตจากไฟล์ `ClaimfunAPISpecification.json`
 
@@ -2988,7 +3146,5 @@ Schema ที่เป็น `*ServiceResponse` (Envelope) ไม่แสดง
 | Endpoint | [`POST /api/Notification/SaveSurveyFeedback`](#ep-post-api-notification-savesurveyfeedback) | เพิ่ม Header parameter `apiKey` |
 | Endpoint | [`POST /api/Notification/UpdateSMSTransactionSurvey`](#ep-post-api-notification-updatesmstransactionsurvey) | เพิ่ม Header parameter `apiKey` |
 | Schema | [`PaymentTransactionResponseDto`](#schema-PaymentTransactionResponseDto) | เพิ่มฟิลด์ `transRefNo` (string, nullable) |
-
-> Endpoint ทั้ง 4 ยังคงกำหนด OAuth 2.0 (scope `ClaimFundAPI`) ไว้ด้วย จึงต้องส่งทั้ง Bearer token และ Header `apiKey` — ควรยืนยันกับทีมพัฒนาว่าต้องใช้ทั้งสองอย่างจริงหรือไม่
 
 [⬆ กลับสู่สารบัญ](#toc)
